@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:restaurand_guide/welcome.dart';
 import 'home.dart';
 
 void main() {
@@ -14,7 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Beirut Restaurant Suggester',
       theme: ThemeData(primarySwatch: Colors.red),
-      home: const HomePage(),
+      home: const WelcomePage(),
     );
   }
 }
