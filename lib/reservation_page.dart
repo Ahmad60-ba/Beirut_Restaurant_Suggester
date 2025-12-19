@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http; // Added for Database connection
-import 'dart:convert'; // Added for JSON encoding
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class ReservationPage extends StatefulWidget {
   final String restaurantName;
@@ -18,7 +18,7 @@ class _ReservationPageState extends State<ReservationPage> {
   DateTime selectedDate = DateTime.now();
   String selectedTime = "19:00";
   int guests = 2;
-  bool isSending = false; // To show a loading state on the button
+  bool isSending = false;
 
   final Map<String, List<String>> dynamicSchedule = {
     "Monday": ["12:00", "13:00", "14:00"],
@@ -48,7 +48,6 @@ class _ReservationPageState extends State<ReservationPage> {
     return weekdays[date.weekday - 1];
   }
 
-  // --- NEW DATABASE SUBMISSION LOGIC ---
   Future<void> _submitToDatabase() async {
     setState(() => isSending = true);
 
@@ -57,7 +56,10 @@ class _ReservationPageState extends State<ReservationPage> {
     try {
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
         body: json.encode({
           "restaurant_name": widget.restaurantName,
           "full_name": _nameController.text.trim(),
@@ -76,10 +78,10 @@ class _ReservationPageState extends State<ReservationPage> {
           _showError("Server Error: ${result['message']}");
         }
       } else {
-        _showError("Failed to connect to server (Status: ${response.statusCode})");
+        _showError("Server Status: ${response.statusCode}");
       }
     } catch (e) {
-      _showError("Connection Error: Check your internet or AwardSpace URL.");
+      _showError("Check internet or AwardSpace URL.");
     } finally {
       setState(() => isSending = false);
     }
@@ -103,26 +105,15 @@ class _ReservationPageState extends State<ReservationPage> {
       ),
       body: Column(
         children: [
-          // Cancellation Policy Banner
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
             color: Colors.amber.shade50,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+                const Icon(Icons.warning_amber_rounded, color: Colors.amber),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Reservation Cancellation Policy", style: TextStyle(color: Colors.amber.shade900, fontSize: 14, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text("You have a maximum of 1–2 hours to cancel or decline after booking.", style: TextStyle(color: Colors.amber.shade900, fontSize: 12, height: 1.4)),
-                    ],
-                  ),
-                ),
+                Expanded(child: Text("Maximum 1-2 hours to cancel after booking.", style: TextStyle(color: Colors.amber.shade900, fontSize: 12))),
               ],
             ),
           ),
@@ -134,20 +125,14 @@ class _ReservationPageState extends State<ReservationPage> {
                 children: [
                   Text(widget.restaurantName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 30),
-                  const Text("Contact Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
                   _buildTextField(_nameController, "Full Name", Icons.person_outline),
                   const SizedBox(height: 15),
                   _buildTextField(_phoneController, "Phone Number", Icons.phone_android_outlined, isPhone: true),
                   const SizedBox(height: 35),
-                  const Text("Pick Date & Time", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
                   _buildDatePicker(),
                   const SizedBox(height: 15),
                   _buildTimePicker(),
                   const SizedBox(height: 35),
-                  const Text("Guests", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 15),
                   _buildGuestCounter(),
                 ],
               ),
@@ -163,14 +148,12 @@ class _ReservationPageState extends State<ReservationPage> {
     return TextField(
       controller: controller,
       keyboardType: isPhone ? TextInputType.number : TextInputType.text,
-      inputFormatters: isPhone ? [FilteringTextInputFormatter.digitsOnly] : [],
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: Colors.grey),
+        prefixIcon: Icon(icon),
         filled: true,
         fillColor: Colors.grey.shade50,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: Colors.redAccent, width: 2)),
       ),
     );
   }
@@ -195,8 +178,7 @@ class _ReservationPageState extends State<ReservationPage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text("${selectedDate.day}/${selectedDate.month}/${selectedDate.year} (${_getDayName(selectedDate)})",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text("${selectedDate.day}/${selectedDate.month}/${selectedDate.year}", style: const TextStyle(fontWeight: FontWeight.bold)),
             const Icon(Icons.calendar_month, color: Colors.redAccent),
           ],
         ),
@@ -207,7 +189,6 @@ class _ReservationPageState extends State<ReservationPage> {
   Widget _buildTimePicker() {
     return Wrap(
       spacing: 10,
-      runSpacing: 10,
       children: availableTimeSlots.map((time) {
         bool active = selectedTime == time;
         return ChoiceChip(
@@ -215,10 +196,7 @@ class _ReservationPageState extends State<ReservationPage> {
           selected: active,
           onSelected: (val) => setState(() => selectedTime = time),
           selectedColor: Colors.black,
-          backgroundColor: Colors.white,
-          labelStyle: TextStyle(color: active ? Colors.white : Colors.black, fontWeight: FontWeight.bold),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          labelStyle: TextStyle(color: active ? Colors.white : Colors.black),
         );
       }).toList(),
     );
@@ -228,35 +206,26 @@ class _ReservationPageState extends State<ReservationPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        IconButton(onPressed: () => setState(() => guests > 1 ? guests-- : null), icon: const Icon(Icons.remove_circle, size: 30, color: Colors.grey)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25),
-          child: Text("$guests", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-        ),
+        IconButton(onPressed: () => setState(() => guests > 1 ? guests-- : null), icon: const Icon(Icons.remove_circle, size: 30)),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 25), child: Text("$guests", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold))),
         IconButton(onPressed: () => setState(() => guests++), icon: const Icon(Icons.add_circle, size: 30, color: Colors.redAccent)),
       ],
     );
   }
 
   Widget _buildBottomAction() {
-    return Container(
+    return Padding(
       padding: const EdgeInsets.fromLTRB(25, 10, 25, 40),
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.redAccent,
-            minimumSize: const Size(double.infinity, 60),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))
-        ),
-        onPressed: isSending ? null : () { // Disable button while sending
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
+        onPressed: isSending ? null : () {
           if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
-            _showError("Please fill in your name and phone number");
+            _showError("Please fill in your details");
           } else {
-            _submitToDatabase(); // Call the Database submission
+            _submitToDatabase();
           }
         },
-        child: isSending
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: isSending ? const CircularProgressIndicator(color: Colors.white) : const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -266,27 +235,13 @@ class _ReservationPageState extends State<ReservationPage> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 70),
-            const SizedBox(height: 20),
-            const Text("Request Received!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-            const SizedBox(height: 12),
-            const Text("Your details have been sent to the restaurant. They will contact you shortly to confirm your reservation.", textAlign: TextAlign.center),
+            const Text("Thank you! Your reservation request has been sent to the restaurant. They will contact you shortly to confirm availability.", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
             const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: () {
-                  Navigator.pop(context); // Close Dialog
-                  Navigator.pop(context); // Go back to Home
-                },
-                child: const Text("DONE", style: TextStyle(color: Colors.white)),
-              ),
-            )
+            ElevatedButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("DONE"))
           ],
         ),
       ),
