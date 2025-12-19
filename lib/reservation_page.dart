@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // Required for Blocking Alphabets
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl_phone_field/intl_phone_field.dart';
 
 class ReservationPage extends StatefulWidget {
   final String restaurantName;
@@ -13,12 +14,14 @@ class ReservationPage extends StatefulWidget {
 
 class _ReservationPageState extends State<ReservationPage> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
+
+  String _fullPhoneNumber = "";
+  bool _isPhoneValid = false;
+  bool isSending = false;
 
   DateTime selectedDate = DateTime.now();
   String selectedTime = "19:00";
   int guests = 2;
-  bool isSending = false;
 
   final Map<String, List<String>> dynamicSchedule = {
     "Monday": ["12:00", "13:00", "14:00"],
@@ -49,21 +52,26 @@ class _ReservationPageState extends State<ReservationPage> {
   }
 
   Future<void> _submitToDatabase() async {
-    setState(() => isSending = true);
+    if (_nameController.text.trim().isEmpty) {
+      _showError("Please enter your full name.");
+      return;
+    }
+    if (!_isPhoneValid) {
+      _showError("Please enter a valid phone number.");
+      return;
+    }
 
+    setState(() => isSending = true);
     final url = Uri.parse("http://beiruteats.atwebpages.com/make_reservation.php");
 
     try {
       final response = await http.post(
         url,
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
+        headers: {"Content-Type": "application/json"},
         body: json.encode({
           "restaurant_name": widget.restaurantName,
           "full_name": _nameController.text.trim(),
-          "phone": _phoneController.text.trim(),
+          "phone": _fullPhoneNumber,
           "res_date": "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
           "res_time": selectedTime,
           "guests": guests,
@@ -77,11 +85,9 @@ class _ReservationPageState extends State<ReservationPage> {
         } else {
           _showError("Server Error: ${result['message']}");
         }
-      } else {
-        _showError("Server Status: ${response.statusCode}");
       }
     } catch (e) {
-      _showError("Check internet or AwardSpace URL.");
+      _showError("Connection failed. Check your internet.");
     } finally {
       setState(() => isSending = false);
     }
@@ -105,18 +111,7 @@ class _ReservationPageState extends State<ReservationPage> {
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            color: Colors.amber.shade50,
-            child: Row(
-              children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.amber),
-                const SizedBox(width: 12),
-                Expanded(child: Text("Maximum 1-2 hours to cancel after booking.", style: TextStyle(color: Colors.amber.shade900, fontSize: 12))),
-              ],
-            ),
-          ),
+          _buildBanner(),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(25),
@@ -126,8 +121,8 @@ class _ReservationPageState extends State<ReservationPage> {
                   Text(widget.restaurantName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 30),
                   _buildTextField(_nameController, "Full Name", Icons.person_outline),
-                  const SizedBox(height: 15),
-                  _buildTextField(_phoneController, "Phone Number", Icons.phone_android_outlined, isPhone: true),
+                  const SizedBox(height: 20),
+                  _buildPhoneField(),
                   const SizedBox(height: 35),
                   _buildDatePicker(),
                   const SizedBox(height: 15),
@@ -144,10 +139,59 @@ class _ReservationPageState extends State<ReservationPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isPhone = false}) {
+  Widget _buildBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      color: Colors.amber.shade50,
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Colors.amber),
+          const SizedBox(width: 12),
+          Expanded(child: Text("Maximum 1-2 hours to cancel after booking.", style: TextStyle(color: Colors.amber.shade900, fontSize: 12))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text("Phone Number", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
+        const SizedBox(height: 8),
+        IntlPhoneField(
+          // 1. HARD LOCK: BLOCKS ALPHABETS COMPLETELY
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+
+          // 2. DISABLE IMAGE FLAGS TO PREVENT CRASHING
+          showCountryFlag: false,
+
+          // 3. SHOW EMOJI FLAGS INSTEAD (Uses text, so it never fails to load)
+          flagsButtonMargin: const EdgeInsets.only(left: 8),
+
+          decoration: InputDecoration(
+            hintText: 'Phone Number',
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+            counterText: "",
+          ),
+          initialCountryCode: 'LB',
+          onChanged: (phone) {
+            setState(() {
+              _fullPhoneNumber = phone.completeNumber;
+              try { _isPhoneValid = phone.isValidNumber(); } catch (e) { _isPhoneValid = false; }
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label, IconData icon) {
     return TextField(
       controller: controller,
-      keyboardType: isPhone ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
@@ -217,15 +261,15 @@ class _ReservationPageState extends State<ReservationPage> {
     return Padding(
       padding: const EdgeInsets.fromLTRB(25, 10, 25, 40),
       child: ElevatedButton(
-        style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, minimumSize: const Size(double.infinity, 60), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))),
-        onPressed: isSending ? null : () {
-          if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
-            _showError("Please fill in your details");
-          } else {
-            _submitToDatabase();
-          }
-        },
-        child: isSending ? const CircularProgressIndicator(color: Colors.white) : const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.redAccent,
+            minimumSize: const Size(double.infinity, 60),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))
+        ),
+        onPressed: isSending ? null : _submitToDatabase,
+        child: isSending
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -239,7 +283,9 @@ class _ReservationPageState extends State<ReservationPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.check_circle, color: Colors.green, size: 70),
-            const Text("Thank you! Your reservation request has been sent to the restaurant. They will contact you shortly to confirm availability.", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+            const SizedBox(height: 20),
+            const Text("Reservation Sent!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
+            const Text("The restaurant will contact you shortly.", textAlign: TextAlign.center),
             const SizedBox(height: 30),
             ElevatedButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("DONE"))
           ],
