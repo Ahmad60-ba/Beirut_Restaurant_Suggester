@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http; // Added for Database connection
+import 'dart:convert'; // Added for JSON encoding
 
 class ReservationPage extends StatefulWidget {
   final String restaurantName;
@@ -10,14 +12,13 @@ class ReservationPage extends StatefulWidget {
 }
 
 class _ReservationPageState extends State<ReservationPage> {
-
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
 
   DateTime selectedDate = DateTime.now();
   String selectedTime = "19:00";
   int guests = 2;
-
+  bool isSending = false; // To show a loading state on the button
 
   final Map<String, List<String>> dynamicSchedule = {
     "Monday": ["12:00", "13:00", "14:00"],
@@ -47,6 +48,49 @@ class _ReservationPageState extends State<ReservationPage> {
     return weekdays[date.weekday - 1];
   }
 
+  // --- NEW DATABASE SUBMISSION LOGIC ---
+  Future<void> _submitToDatabase() async {
+    setState(() => isSending = true);
+
+    final url = Uri.parse("http://beiruteats.atwebpages.com/make_reservation.php");
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({
+          "restaurant_name": widget.restaurantName,
+          "full_name": _nameController.text.trim(),
+          "phone": _phoneController.text.trim(),
+          "res_date": "${selectedDate.day}/${selectedDate.month}/${selectedDate.year}",
+          "res_time": selectedTime,
+          "guests": guests,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['status'] == 'success') {
+          _showSuccess();
+        } else {
+          _showError("Server Error: ${result['message']}");
+        }
+      } else {
+        _showError("Failed to connect to server (Status: ${response.statusCode})");
+      }
+    } catch (e) {
+      _showError("Connection Error: Check your internet or AwardSpace URL.");
+    } finally {
+      setState(() => isSending = false);
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg), backgroundColor: Colors.red),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -59,29 +103,23 @@ class _ReservationPageState extends State<ReservationPage> {
       ),
       body: Column(
         children: [
-
+          // Cancellation Policy Banner
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-            color: Colors.amber.shade50, // Light caution background
+            color: Colors.amber.shade50,
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start, // Align with top for long text
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24), // Caution Icon
+                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Reservation Cancellation Policy",
-                        style: TextStyle(color: Colors.amber.shade900, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
+                      Text("Reservation Cancellation Policy", style: TextStyle(color: Colors.amber.shade900, fontSize: 14, fontWeight: FontWeight.bold)),
                       const SizedBox(height: 4),
-                      Text(
-                        "You have a maximum of 1–2 hours to cancel or decline after booking. Failure to do so will result in automatic confirmation.",
-                        style: TextStyle(color: Colors.amber.shade900, fontSize: 12, height: 1.4),
-                      ),
+                      Text("You have a maximum of 1–2 hours to cancel or decline after booking.", style: TextStyle(color: Colors.amber.shade900, fontSize: 12, height: 1.4)),
                     ],
                   ),
                 ),
@@ -96,27 +134,18 @@ class _ReservationPageState extends State<ReservationPage> {
                 children: [
                   Text(widget.restaurantName, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 30),
-
-
                   const Text("Contact Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   _buildTextField(_nameController, "Full Name", Icons.person_outline),
                   const SizedBox(height: 15),
-
                   _buildTextField(_phoneController, "Phone Number", Icons.phone_android_outlined, isPhone: true),
-
                   const SizedBox(height: 35),
-
-
                   const Text("Pick Date & Time", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   _buildDatePicker(),
                   const SizedBox(height: 15),
                   _buildTimePicker(),
-
                   const SizedBox(height: 35),
-
-
                   const Text("Guests", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 15),
                   _buildGuestCounter(),
@@ -130,12 +159,10 @@ class _ReservationPageState extends State<ReservationPage> {
     );
   }
 
-
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool isPhone = false}) {
     return TextField(
       controller: controller,
       keyboardType: isPhone ? TextInputType.number : TextInputType.text,
-      // This line rejects all letters and special characters, allowing only numbers
       inputFormatters: isPhone ? [FilteringTextInputFormatter.digitsOnly] : [],
       decoration: InputDecoration(
         labelText: label,
@@ -220,16 +247,16 @@ class _ReservationPageState extends State<ReservationPage> {
             minimumSize: const Size(double.infinity, 60),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18))
         ),
-        onPressed: () {
+        onPressed: isSending ? null : () { // Disable button while sending
           if (_nameController.text.trim().isEmpty || _phoneController.text.trim().isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Please fill in your name and phone number"), backgroundColor: Colors.redAccent)
-            );
+            _showError("Please fill in your name and phone number");
           } else {
-            _showSuccess();
+            _submitToDatabase(); // Call the Database submission
           }
         },
-        child: const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+        child: isSending
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
       ),
     );
   }
@@ -247,19 +274,15 @@ class _ReservationPageState extends State<ReservationPage> {
             const SizedBox(height: 20),
             const Text("Request Received!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
             const SizedBox(height: 12),
-            const Text(
-              "Thank you! Your reservation request has been sent to the restaurant. They will contact you shortly to confirm availability",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.black87),
-            ),
+            const Text("Your details have been sent to the restaurant. They will contact you shortly to confirm your reservation.", textAlign: TextAlign.center),
             const SizedBox(height: 30),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context);
+                  Navigator.pop(context); // Close Dialog
+                  Navigator.pop(context); // Go back to Home
                 },
                 child: const Text("DONE", style: TextStyle(color: Colors.white)),
               ),

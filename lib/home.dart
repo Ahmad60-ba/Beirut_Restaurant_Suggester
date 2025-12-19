@@ -202,7 +202,7 @@ class _HomePageState extends State<HomePage> {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontSize: 30,
                   shadows: [Shadow(blurRadius: 10, color: Colors.black)],
                 ),
               ),
@@ -298,7 +298,7 @@ class _HomePageState extends State<HomePage> {
                       children: [
                         const SizedBox(height: 4),
                         Row(children: [const Icon(Icons.star, color: Colors.orange, size: 16), const SizedBox(width: 4), Text("${r["rate"]} • ${r["category"]}")]),
-                        Text(r["address"], style: const TextStyle(fontSize: 12, color: Colors.grey)),
+
                       ],
                     ),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
