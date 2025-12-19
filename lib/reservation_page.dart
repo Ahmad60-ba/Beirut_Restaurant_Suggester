@@ -148,7 +148,55 @@ class _ReservationPageState extends State<ReservationPage> {
         children: [
           const Icon(Icons.warning_amber_rounded, color: Colors.amber),
           const SizedBox(width: 12),
-          Expanded(child: Text("Maximum 1-2 hours to cancel after booking.", style: TextStyle(color: Colors.amber.shade900, fontSize: 12))),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.amber.shade900,
+                ),
+                children: [
+                  WidgetSpan(
+                    child: GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (_) => AlertDialog(
+                            title: const Text(
+                              "Reservation Cancellation Policy",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            content: const Text(
+                              "After placing a table reservation, customers are allowed a maximum of 1–2 hours to cancel or decline the reservation. Failure to do so within this period will result in the reservation being automatically confirmed.",
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("OK"),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: Text(
+                        "Reservation Cancellation Policy: ",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber.shade900,
+
+                        ),
+                      ),
+                    ),
+                  ),
+                  const TextSpan(
+                    text:
+                    "After placing a table reservation, customers are allowed a maximum of 1–2 hours to cancel or decline the reservation. Failure to do so within this period will result in the reservation being automatically confirmed.",
+                  ),
+                ],
+              ),
+            ),
+          )
+
         ],
       ),
     );
@@ -285,7 +333,7 @@ class _ReservationPageState extends State<ReservationPage> {
             const Icon(Icons.check_circle, color: Colors.green, size: 70),
             const SizedBox(height: 20),
             const Text("Reservation Sent!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-            const Text("The restaurant will contact you shortly.", textAlign: TextAlign.center),
+            const Text("Thank you! Your reservation request has been sent to the restaurant. They will contact you shortly to confirm availability.", textAlign: TextAlign.center),
             const SizedBox(height: 30),
             ElevatedButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("DONE"))
           ],
