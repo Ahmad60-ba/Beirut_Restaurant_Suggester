@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Required for Blocking Alphabets
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'globals.dart' as globals; // Link to your globals for auto-fill
 
 class ReservationPage extends StatefulWidget {
   final String restaurantName;
@@ -23,6 +24,7 @@ class _ReservationPageState extends State<ReservationPage> {
   String selectedTime = "19:00";
   int guests = 2;
 
+  // Schedule logic from your original file
   final Map<String, List<String>> dynamicSchedule = {
     "Monday": ["12:00", "13:00", "14:00"],
     "Friday": ["18:00", "19:00", "20:00", "21:00", "22:00"],
@@ -35,6 +37,9 @@ class _ReservationPageState extends State<ReservationPage> {
   @override
   void initState() {
     super.initState();
+    // 1. Pre-fill data from the account used during Sign-up/Login
+    _nameController.text = globals.registeredName;
+    _fullPhoneNumber = globals.registeredPhone;
     _updateAvailableTimes(selectedDate);
   }
 
@@ -56,7 +61,8 @@ class _ReservationPageState extends State<ReservationPage> {
       _showError("Please enter your full name.");
       return;
     }
-    if (!_isPhoneValid) {
+    // Validation check for phone status
+    if (_fullPhoneNumber.isEmpty) {
       _showError("Please enter a valid phone number.");
       return;
     }
@@ -124,10 +130,13 @@ class _ReservationPageState extends State<ReservationPage> {
                   const SizedBox(height: 20),
                   _buildPhoneField(),
                   const SizedBox(height: 35),
+                  const Text("Pick Date & Time", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 15),
                   _buildDatePicker(),
                   const SizedBox(height: 15),
                   _buildTimePicker(),
                   const SizedBox(height: 35),
+                  const Text("Number of Guests", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   _buildGuestCounter(),
                 ],
               ),
@@ -151,52 +160,19 @@ class _ReservationPageState extends State<ReservationPage> {
           Expanded(
             child: RichText(
               text: TextSpan(
-                style: TextStyle(
-                  fontSize: 15,
-                  color: Colors.amber.shade900,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.amber.shade900),
                 children: [
-                  WidgetSpan(
-                    child: GestureDetector(
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: const Text(
-                              "Reservation Cancellation Policy",
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            content: const Text(
-                              "After placing a table reservation, customers are allowed a maximum of 1–2 hours to cancel or decline the reservation. Failure to do so within this period will result in the reservation being automatically confirmed.",
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: const Text("OK"),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                      child: Text(
-                        "Reservation Cancellation Policy: ",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.amber.shade900,
-
-                        ),
-                      ),
-                    ),
+                  TextSpan(
+                    text: "Reservation Cancellation Policy: ",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   const TextSpan(
-                    text:
-                    "After placing a table reservation, customers are allowed a maximum of 1–2 hours to cancel or decline the reservation. Failure to do so within this period will result in the reservation being automatically confirmed.",
+                    text: "You have 1–2 hours to cancel. After this period, the reservation is automatically confirmed.",
                   ),
                 ],
               ),
             ),
           )
-
         ],
       ),
     );
@@ -209,15 +185,8 @@ class _ReservationPageState extends State<ReservationPage> {
         const Text("Phone Number", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey)),
         const SizedBox(height: 8),
         IntlPhoneField(
-          // 1. HARD LOCK: BLOCKS ALPHABETS COMPLETELY
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-
-          // 2. DISABLE IMAGE FLAGS TO PREVENT CRASHING
           showCountryFlag: false,
-
-          // 3. SHOW EMOJI FLAGS INSTEAD (Uses text, so it never fails to load)
-          flagsButtonMargin: const EdgeInsets.only(left: 8),
-
           decoration: InputDecoration(
             hintText: 'Phone Number',
             filled: true,
@@ -226,6 +195,8 @@ class _ReservationPageState extends State<ReservationPage> {
             counterText: "",
           ),
           initialCountryCode: 'LB',
+          // Set initial value from globals
+          initialValue: globals.registeredPhone.startsWith('+') ? null : globals.registeredPhone,
           onChanged: (phone) {
             setState(() {
               _fullPhoneNumber = phone.completeNumber;
@@ -317,7 +288,7 @@ class _ReservationPageState extends State<ReservationPage> {
         onPressed: isSending ? null : _submitToDatabase,
         child: isSending
             ? const CircularProgressIndicator(color: Colors.white)
-            : const Text("SEND REQUEST", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            : const Text("REQUEST BOOKING", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -333,7 +304,7 @@ class _ReservationPageState extends State<ReservationPage> {
             const Icon(Icons.check_circle, color: Colors.green, size: 70),
             const SizedBox(height: 20),
             const Text("Reservation Sent!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-            const Text("Thank you! Your reservation request has been sent to the restaurant. They will contact you shortly to confirm availability.", textAlign: TextAlign.center),
+            const Text("Thank you! Your reservation request has been sent to the restaurant. They will contact you shortly.", textAlign: TextAlign.center),
             const SizedBox(height: 30),
             ElevatedButton(onPressed: () { Navigator.pop(context); Navigator.pop(context); }, child: const Text("DONE"))
           ],

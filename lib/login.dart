@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
 import 'signup.dart';
-import 'forgot_password.dart';
+import 'forgot_password.dart'; // Ensure this matches your file name
+import 'globals.dart' as globals;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,8 +13,6 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-
-
   String username = '';
   String password = '';
 
@@ -29,11 +28,12 @@ class _LoginPageState extends State<LoginPage> {
             child: Image.asset("assets/beirut.jpg", fit: BoxFit.cover),
           ),
           Positioned(
-            top: 50, left: 20,
+            top: 50,
+            left: 20,
             child: CircleAvatar(
-              backgroundColor: Colors.black.withOpacity(0.4),
+              backgroundColor: Colors.white.withOpacity(0.8),
               child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                icon: const Icon(Icons.arrow_back, color: Colors.black),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -41,7 +41,7 @@ class _LoginPageState extends State<LoginPage> {
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
-              height: MediaQuery.of(context).size.height * 0.6,
+              height: MediaQuery.of(context).size.height * 0.65,
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 40),
               decoration: const BoxDecoration(
@@ -57,51 +57,55 @@ class _LoginPageState extends State<LoginPage> {
                       const Text("Welcome", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                       const Text("Sign in to your account", style: TextStyle(color: Colors.grey)),
                       const SizedBox(height: 35),
-
-
-                      _buildTextField("UserName", Icons.account_circle, false, (val) => username = val ?? ''),
+                      _buildTextField("Username", Icons.account_circle, false, (val) => username = val!),
                       const SizedBox(height: 20),
-                      _buildTextField("Password", Icons.lock_outline, true, (val) => password = val ?? ''),
+                      _buildTextField("Password", Icons.lock_outline, true, (val) => password = val!),
 
+                      // FORGOT PASSWORD LINK
                       Align(
                         alignment: Alignment.centerRight,
                         child: TextButton(
                           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordPage())),
-                          child: const Text("Forgot Password?", style: TextStyle(color: Colors.redAccent)),
+                          child: const Text("Forgot Password?", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                         ),
                       ),
-                      const SizedBox(height: 20),
+
+                      const SizedBox(height: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.redAccent,
                           minimumSize: const Size(double.infinity, 55),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         ),
-                        onPressed: () {
-                          if (_formKey.currentState!.validate()) {
-                            _formKey.currentState!.save();
-
-                            Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(builder: (_) => HomePage(username: username))
-                            );
+                        onPressed: () async {
+                          _formKey.currentState!.save();
+                          bool success = await globals.verifyLogin(username, password);
+                          if (success) {
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage(username: username)));
+                          } else {
+                            _showError("Invalid Username or Password");
                           }
                         },
                         child: const Text("LOGIN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 15),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 55),
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        ),
+                        onPressed: () {
+                          globals.isLoggedIn = false;
+                          globals.currentUserName = "";
+                          Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomePage(username: null)));
+                        },
+                        child: const Text("CONTINUE AS GUEST", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                      ),
                       Center(
-                        child: GestureDetector(
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignUpPage())),
-                          child: RichText(
-                            text: const TextSpan(
-                              text: "New user? ",
-                              style: TextStyle(color: Colors.black54),
-                              children: [
-                                TextSpan(text: "Sign Up", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
+                        child: TextButton(
+                          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignUpPage())),
+                          child: const Text("New user? Sign Up", style: TextStyle(color: Colors.black54)),
                         ),
                       ),
                     ],
@@ -115,7 +119,10 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // FIXED: Added 'onSave' parameter to handle different fields
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+  }
+
   Widget _buildTextField(String hint, IconData icon, bool isPass, Function(String?) onSave) {
     return TextFormField(
       obscureText: isPass,
@@ -127,7 +134,6 @@ class _LoginPageState extends State<LoginPage> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
       ),
       onSaved: onSave,
-      validator: (val) => val == null || val.isEmpty ? "Field required" : null,
     );
   }
 }

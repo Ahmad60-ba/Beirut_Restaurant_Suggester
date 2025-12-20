@@ -8,11 +8,8 @@ class ForgotPasswordPage extends StatefulWidget {
 }
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
-  final _formKey = GlobalKey<FormState>();
-  String email = '';
-  String phone = '';
+  bool isProcessing = false;
 
-  // Function to show the professional top notification
   void showTopNotification(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -28,7 +25,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           decoration: BoxDecoration(
-            color: Colors.green[600],
+            color: Colors.green[600], // Changed to green for a "nice" successful feeling
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -40,15 +37,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           child: Row(
             children: [
-              const Icon(Icons.check_circle_outline, color: Colors.white),
+              const Icon(Icons.sentiment_satisfied_alt, color: Colors.white), // Happy icon
               const SizedBox(width: 15),
               Expanded(
                 child: Text(
                   message,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -65,20 +59,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-
           Positioned(
             top: 0, left: 0, right: 0,
             height: MediaQuery.of(context).size.height * 0.45,
-            child: Image.asset(
-              "assets/beirut.jpg",
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset("assets/beirut.jpg", fit: BoxFit.cover),
           ),
-
-
           Positioned(
-            top: 50,
-            left: 20,
+            top: 50, left: 20,
             child: CircleAvatar(
               backgroundColor: Colors.black.withOpacity(0.4),
               child: IconButton(
@@ -87,8 +74,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               ),
             ),
           ),
-
-
           Align(
             alignment: Alignment.bottomCenter,
             child: Container(
@@ -97,91 +82,78 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
               padding: const EdgeInsets.all(30),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40),
-                  topRight: Radius.circular(40),
-                ),
+                borderRadius: BorderRadius.only(topLeft: Radius.circular(40), topRight: Radius.circular(40)),
               ),
               child: SingleChildScrollView(
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Recovery",
-                        style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Account Help", style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    const Text(
+                      "To keep your account  secure, our team handles all password resets personally.",
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                    const SizedBox(height: 30),
+
+                    // Instruction Card
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(15),
                       ),
-                      const SizedBox(height: 10),
-                      const Text(
-                        "Enter your registered email and phone to receive a reset link.",
-                        style: TextStyle(color: Colors.grey, fontSize: 15),
-                      ),
-                      const SizedBox(height: 40),
-
-
-                      _buildInput("Email Address", Icons.email_outlined),
-                      const SizedBox(height: 20),
-
-
-                      _buildInput("Phone Number", Icons.phone_outlined),
-                      const SizedBox(height: 40),
-
-
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          minimumSize: const Size(double.infinity, 60),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                      child: const Column(
+                        children: [
+                          ListTile(
+                            leading: Icon(Icons.phone_android, color: Colors.redAccent),
+                            title: Text("Contact via WhatsApp"),
+                            subtitle: Text("+961 81 641 944"),
                           ),
-                          elevation: 5,
-                        ),
-                        onPressed: () {
-
-                          showTopNotification(context, "Reset link sent successfully!");
-
-                          Future.delayed(const Duration(milliseconds: 2000), () {
-                            if (mounted) Navigator.pop(context);
-                          });
-                        },
-                        child: const Text(
-                          "SEND RESET LINK",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
+                          Divider(),
+                          ListTile(
+                            leading: Icon(Icons.email_outlined, color: Colors.redAccent),
+                            title: Text("Email Support"),
+                            subtitle: Text("ahmed.baghdadi.ahmed@gmail.com"),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 40),
+
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        minimumSize: const Size(double.infinity, 60),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      ),
+                      onPressed: isProcessing ? null : () {
+                        setState(() => isProcessing = true);
+
+                        // 1. Show the nice message
+                        showTopNotification(context, "Thank you! We're waiting for your message to help you out.");
+
+                        // 2. Wait 2.5 seconds then redirect
+                        Future.delayed(const Duration(milliseconds: 2500), () {
+                          if (mounted) {
+                            Navigator.pop(context);
+                          }
+                        });
+                      },
+                      child: isProcessing
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                        "I UNDERSTAND",
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildInput(String hint, IconData icon) {
-    return TextFormField(
-      decoration: InputDecoration(
-        labelText: hint,
-        labelStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: Colors.black87),
-        filled: true,
-        fillColor: Colors.grey[100],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: const BorderSide(color: Colors.black, width: 1),
-        ),
       ),
     );
   }

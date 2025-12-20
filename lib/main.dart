@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:restaurand_guide/welcome.dart';
-import 'home.dart';
+import 'globals.dart' as globals;
 
-void main() {
+void main() async {
+  // Ensure Flutter is initialized for SharedPreferences
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Load saved users and reviews from memory
+  await globals.loadData();
+
   runApp(const MyApp());
 }
 
